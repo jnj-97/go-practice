@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,17 +9,36 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
+	"github.com/jnj-97/go-practice/internal/database"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
+
+type apiConfig struct {
+		DB *database.Queries
+	}
 
 func main(){
 	fmt.Println("Testing")
 	godotenv.Load(".env")
 	portString := os.Getenv("PORT")
+	db_url:=os.Getenv("DB_URL")
 	if portString==""{
 		log.Fatal("Port not set");
 	}
+	if db_url==""{
+		log.Fatal("DB_URL Not Found")
+	}
+	conn,err:=sql.Open("postgres",db_url)
+	if err!=nil{
+		log.Fatal("Unable to connect to Database",err)
+	}
+	queries:=database.New(conn)
 	
+
+	apiCfg:=apiConfig{
+		DB: queries,
+	}
 	router:=chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -28,15 +48,18 @@ func main(){
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+
 	v1Router:=chi.NewRouter()
-	v1Router.HandleFunc("/ready",handlerReadiness)
+	v1Router.Get("/ready",handlerReadiness)
+	v1Router.Get("/error",handlerError)
+	v1Router.Post("/users",apiCfg.handleUser)
 	router.Mount("/v1",v1Router)
 	server:= &http.Server{
 			Handler:router,
 			Addr: ":"+portString,
 	}
 	fmt.Println("Server listening on Port: ",portString)
-	err:=server.ListenAndServe()
+	err=server.ListenAndServe()
 	if(err!=nil){
 		log.Fatal(err)
 	}
