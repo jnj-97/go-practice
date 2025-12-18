@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jnj-97/go-practice/internal/auth"
 	"github.com/jnj-97/go-practice/internal/database"
 )
 
@@ -36,16 +35,7 @@ func (apiCfg *apiConfig) handleUser(w http.ResponseWriter, r *http.Request){
 	respondWithJSON(w,201,user)
 }
 
-func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request){
-	apiKey,err:=auth.GetAPIKey(r.Header)
-	if err!=nil{
-		respondwithError(w,403,fmt.Sprintf("Auth Err: ",err))
-		return
-	}
-	user,err:=apiCfg.DB.GetUserByAPIKey(r.Context(),apiKey)
-	if err!=nil{
-		respondwithError(w,403,fmt.Sprintf("Couln't get User: ",err))
-		return
-	}
+func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request, user database.User){
+	
 	respondWithJSON(w,200,user)
 }
